@@ -1,0 +1,9 @@
+# Secret config — never commit API keys
+appsettings.Development.json
+
+# Build output
+bin/
+obj/
+
+# OS
+.DS_Store
