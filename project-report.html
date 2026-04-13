@@ -1,0 +1,1768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Report — AI Movie Recommendation Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root {
+    --ink: #e2e8f0;
+    --paper: #080812;
+    --cream: #0f0f22;
+    --accent: #a855f7;
+    --accent2: #06b6d4;
+    --gold: #f59e0b;
+    --muted: #64748b;
+    --border: rgba(168,85,247,0.18);
+    --success: #10b981;
+    --display: 'Syne', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', 'Courier New', monospace;
+    --sans: 'Space Grotesk', system-ui, sans-serif;
+    --grad: linear-gradient(135deg, #a855f7, #06b6d4);
+    --grad2: linear-gradient(135deg, #f59e0b, #ef4444);
+    --grad3: linear-gradient(135deg, #10b981, #06b6d4);
+    --surface: rgba(255,255,255,0.03);
+    --surface2: rgba(255,255,255,0.06);
+    --glow: 0 0 30px rgba(168,85,247,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.7;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 20% -10%, rgba(168,85,247,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 110%, rgba(6,182,212,0.06) 0%, transparent 60%);
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(168,85,247,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(168,85,247,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  * { position: relative; z-index: 1; }
+
+  @media print {
+    .no-print { display: none !important; }
+    body { background: white; color: black; }
+    .page-break { page-break-before: always; }
+    .card { box-shadow: none !important; border: 1px solid #ccc !important; }
+  }
+
+  /* MASTHEAD */
+  .masthead {
+    background: linear-gradient(180deg, #0a0a1a 0%, #080812 100%);
+    color: var(--ink);
+    padding: 0;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+  }
+  .masthead::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -20%;
+    width: 60%; height: 200%;
+    background: radial-gradient(ellipse, rgba(168,85,247,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .masthead::after {
+    content: '';
+    position: absolute;
+    top: -30%; right: -10%;
+    width: 50%; height: 160%;
+    background: radial-gradient(ellipse, rgba(6,182,212,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .masthead-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 72px 40px 60px;
+    position: relative;
+    z-index: 2;
+  }
+  .course-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .course-tag::before {
+    content: '';
+    display: inline-block;
+    width: 32px;
+    height: 1px;
+    background: var(--accent);
+    opacity: 0.5;
+  }
+  .masthead h1 {
+    font-family: var(--display);
+    font-size: clamp(36px, 6vw, 72px);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin-bottom: 24px;
+    color: white;
+  }
+  .masthead h1 em {
+    font-style: normal;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .masthead-sub {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .meta-chip {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    border-radius: 20px;
+    color: rgba(226,232,240,0.7);
+    font-size: 11px;
+    transition: border-color 0.2s;
+  }
+  .meta-chip:hover { border-color: rgba(168,85,247,0.4); color: white; }
+  .meta-chip::before { content: none; }
+
+  /* LAYOUT */
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 40px 100px; }
+
+  /* STATS BAND */
+  .overview-band {
+    background: linear-gradient(135deg, rgba(168,85,247,0.15), rgba(6,182,212,0.1));
+    border-bottom: 1px solid var(--border);
+    padding: 36px 40px;
+    backdrop-filter: blur(10px);
+  }
+  .overview-band-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 24px;
+  }
+  .overview-stat { text-align: center; }
+  .overview-stat .num {
+    font-family: var(--display);
+    font-size: 42px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 6px;
+    background: var(--grad);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .overview-stat .lbl {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* SECTION TITLES */
+  .section-rule {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 60px 0 28px;
+  }
+  .section-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    flex-shrink: 0;
+    background: rgba(168,85,247,0.1);
+    border: 1px solid rgba(168,85,247,0.3);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .section-title {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: white;
+  }
+  .section-rule::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+    margin-left: 8px;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 16px;
+    backdrop-filter: blur(8px);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .card:hover { border-color: rgba(168,85,247,0.35); box-shadow: var(--glow); }
+  .card-accent-left  { border-left: 2px solid var(--accent);  }
+  .card-accent-blue  { border-left: 2px solid var(--accent2); }
+  .card-accent-gold  { border-left: 2px solid var(--gold);    }
+  .card-accent-green { border-left: 2px solid var(--success); }
+
+  /* STEP CARDS */
+  .step-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .step-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .step-card:hover { border-color: rgba(168,85,247,0.4); transform: translateY(-2px); }
+  .step-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .step-label { font-family: var(--display); font-size: 18px; font-weight: 700; color: white; }
+  .step-focus { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.6); margin-top: 3px; }
+  .step-body { padding: 18px 20px; }
+  .step-tasks { list-style: none; margin-bottom: 14px; }
+  .step-tasks li {
+    font-size: 13px;
+    color: rgba(226,232,240,0.8);
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.5;
+  }
+  .step-tasks li:last-child { border-bottom: none; }
+  .step-tasks li::before {
+    content: '✓';
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--success);
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-weight: 700;
+  }
+  .step-done {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: rgba(16,185,129,0.12);
+    color: var(--success);
+    display: inline-block;
+    border: 1px solid rgba(16,185,129,0.3);
+  }
+  .step-done strong { color: white; }
+
+  /* TECH STACK */
+  .tech-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
+  .tech-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 12px;
+    text-align: center;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .tech-item:hover { border-color: rgba(168,85,247,0.4); transform: translateY(-3px); }
+  .tech-icon { font-size: 26px; margin-bottom: 10px; display: block; }
+  .tech-name { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; font-weight: 500; color: white; display: block; margin-bottom: 4px; }
+  .tech-role { font-size: 11px; color: var(--muted); }
+
+  /* CODE */
+  pre {
+    background: #0a0a18;
+    color: #e2e8f0;
+    border-radius: 10px;
+    padding: 20px 22px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.75;
+    overflow-x: auto;
+    margin: 12px 0;
+    border: 1px solid rgba(168,85,247,0.15);
+    position: relative;
+  }
+  pre::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--grad);
+    border-radius: 10px 10px 0 0;
+  }
+  code { font-family: var(--mono); font-size: 12px; background: rgba(168,85,247,0.15); padding: 2px 7px; border-radius: 4px; color: #c4b5fd; border: 1px solid rgba(168,85,247,0.2); }
+  pre code { background: none; padding: 0; color: inherit; font-size: inherit; border: none; }
+  .kw { color: #f472b6; }
+  .str { color: #86efac; }
+  .cm { color: #475569; font-style: italic; }
+  .type { color: #67e8f9; }
+  .num { color: #fbbf24; }
+
+  /* FILE TREE */
+  .file-tree {
+    background: #0a0a18;
+    border: 1px solid rgba(168,85,247,0.15);
+    border-radius: 10px;
+    padding: 20px 22px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.9;
+    color: #e2e8f0;
+    position: relative;
+    overflow: hidden;
+  }
+  .file-tree::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--grad);
+    border-radius: 10px 10px 0 0;
+  }
+  .ft-dir { color: #67e8f9; }
+  .ft-file { color: #86efac; }
+  .ft-dim { color: #475569; font-style: italic; }
+  .ft-highlight { color: #fbbf24; }
+
+  /* MOVIE GRID */
+  .movie-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .movie-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    transition: border-color 0.15s;
+  }
+  .movie-item:hover { border-color: rgba(168,85,247,0.4); }
+  .movie-num { font-family: var(--mono); font-size: 10px; color: var(--accent); min-width: 22px; flex-shrink: 0; margin-top: 1px; opacity: 0.7; }
+  .movie-title { font-size: 13px; font-weight: 500; color: white; margin-bottom: 2px; }
+  .movie-genre { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; color: var(--accent2); text-transform: uppercase; }
+
+  /* ENDPOINT */
+  .endpoint {
+    background: #0a0a18;
+    border: 1px solid rgba(168,85,247,0.15);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 10px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .method { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 5px; flex-shrink: 0; margin-top: 1px; }
+  .method.post { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3); }
+  .endpoint-path { font-family: var(--mono); font-size: 13px; color: white; margin-bottom: 5px; }
+  .endpoint-desc { font-family: var(--mono); font-size: 11px; color: var(--muted); line-height: 1.6; }
+
+  /* CALLOUT */
+  .callout {
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    font-size: 13px;
+    line-height: 1.65;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .callout-icon { font-size: 15px; flex-shrink: 0; margin-top: 2px; }
+  .callout.ok   { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); color: rgba(226,232,240,0.9); }
+  .callout.info { background: rgba(6,182,212,0.08);  border: 1px solid rgba(6,182,212,0.25);  color: rgba(226,232,240,0.9); }
+  .callout.warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); color: rgba(226,232,240,0.9); }
+
+  /* CHECKLIST */
+  .checklist { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .checklist li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: rgba(226,232,240,0.85);
+    padding: 11px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    line-height: 1.45;
+    transition: border-color 0.15s;
+  }
+  .checklist li:hover { border-color: rgba(16,185,129,0.35); }
+  .check-done {
+    width: 16px; height: 16px;
+    background: linear-gradient(135deg, #10b981, #06b6d4);
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  /* TEST RESULT */
+  .test-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 13px;
+    color: rgba(226,232,240,0.85);
+  }
+  .test-row:last-child { border-bottom: none; }
+  .test-badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .test-pass { background: rgba(16,185,129,0.12); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
+  .test-note { color: var(--muted); font-size: 12px; }
+
+  /* FOOTER */
+  footer {
+    background: #050510;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    text-align: center;
+    padding: 28px 40px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+  footer strong { color: rgba(226,232,240,0.7); }
+
+  /* PRINT BUTTON */
+  .print-btn {
+    position: fixed;
+    bottom: 28px; right: 28px;
+    background: linear-gradient(135deg, #a855f7, #06b6d4);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 22px;
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    letter-spacing: 0.06em;
+    z-index: 100;
+    transition: opacity 0.2s, transform 0.2s;
+    box-shadow: 0 4px 20px rgba(168,85,247,0.4);
+  }
+  .print-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  /* LINKS BAR */
+  .links-bar {
+    background: #07071a;
+    border-bottom: 1px solid var(--border);
+    padding: 14px 40px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(20px);
+  }
+  .links-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .links-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-right: 6px;
+  }
+  .action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    text-decoration: none;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+  }
+  .btn-github {
+    background: rgba(255,255,255,0.05);
+    color: rgba(226,232,240,0.9);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  .btn-github:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); color: white; }
+  .btn-readme {
+    background: rgba(168,85,247,0.1);
+    color: #c4b5fd;
+    border: 1px solid rgba(168,85,247,0.3);
+  }
+  .btn-readme:hover { background: rgba(168,85,247,0.2); color: white; }
+  .btn-profile {
+    background: rgba(6,182,212,0.1);
+    color: #67e8f9;
+    border: 1px solid rgba(6,182,212,0.3);
+  }
+  .btn-profile:hover { background: rgba(6,182,212,0.2); color: white; }
+
+  /* ARCH FLOW */
+  .arch-flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 18px 0;
+    overflow-x: auto;
+    padding: 4px 0;
+  }
+  .arch-node {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    text-align: center;
+    min-width: 110px;
+    flex-shrink: 0;
+    transition: border-color 0.2s;
+  }
+  .arch-node:hover { border-color: rgba(168,85,247,0.5); }
+  .arch-node .arch-icon { font-size: 22px; display: block; margin-bottom: 6px; }
+  .arch-node .arch-name { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: white; display: block; margin-bottom: 3px; }
+  .arch-node .arch-tech { font-size: 10px; color: var(--muted); }
+  .arch-arrow {
+    font-size: 16px;
+    color: var(--accent);
+    padding: 0 8px;
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
+  .arch-node.highlight { border-color: rgba(168,85,247,0.5); box-shadow: 0 0 16px rgba(168,85,247,0.15); }
+    color: white;
+    border-radius: 6px;
+    padding: 14px 16px;
+    text-align: center;
+    min-width: 110px;
+    flex-shrink: 0;
+  }
+  .arch-node .arch-icon { font-size: 22px; display: block; margin-bottom: 5px; }
+  .arch-node .arch-name { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: rgba(255,255,255,0.9); display: block; margin-bottom: 3px; }
+  .arch-node .arch-tech { font-size: 10px; color: rgba(255,255,255,0.4); }
+  .arch-arrow {
+    font-size: 18px;
+    color: var(--border);
+    padding: 0 6px;
+    flex-shrink: 0;
+  }
+  .arch-node.highlight { border: 2px solid #e8a07a; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50%       { background-position: 100% 50%; }
+  }
+  .masthead-inner > * { animation: fadeUp 0.7s ease both; }
+  .masthead-inner > *:nth-child(1) { animation-delay: 0.1s; }
+  .masthead-inner > *:nth-child(2) { animation-delay: 0.25s; }
+  .masthead-inner > *:nth-child(3) { animation-delay: 0.4s; }
+
+  @media (max-width: 680px) {
+    .step-grid, .tech-row, .movie-grid, .checklist { grid-template-columns: 1fr; }
+    .overview-band-inner { grid-template-columns: 1fr 1fr; }
+    .wrap { padding: 0 20px 60px; }
+    .masthead-inner { padding: 48px 20px 40px; }
+    .links-bar { padding: 12px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">⎙ Print / Save PDF</button>
+
+<!-- THREE.JS NEURAL NET CANVAS -->
+<canvas id="hero-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.35;"></canvas>
+
+<!-- MASTHEAD -->
+<div class="masthead">
+  <canvas id="masthead-canvas" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;"></canvas>
+  <div class="masthead-inner" style="z-index:2;">
+    <div class="course-tag">AI Integration Course — Project Submission Report</div>
+    <h1>AI Movie<br><em>Recommendation</em><br>Engine</h1>
+    <div class="masthead-sub">
+      <span class="meta-chip">React + Vite</span>
+      <span class="meta-chip">.NET 10 Web API</span>
+      <span class="meta-chip">PostgreSQL 18 + pgvector</span>
+      <span class="meta-chip">OpenAI text-embedding-3-small</span>
+      <span class="meta-chip">Completed: April 11, 2026</span>
+    </div>
+  </div>
+</div>
+
+<!-- LINKS BAR -->
+<div class="links-bar no-print">
+  <div class="links-inner">
+    <span class="links-label">Quick Links</span>
+    <a href="https://github.com/shoebali1831/Movie-Recommendation_AI" target="_blank" class="action-btn btn-github">
+      <svg height="14" width="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub Repository
+    </a>
+    <a href="https://github.com/shoebali1831/Movie-Recommendation_AI/blob/main/README.md" target="_blank" class="action-btn btn-readme">
+      📄 View README.md
+    </a>
+    <a href="https://github.com/shoebali1831" target="_blank" class="action-btn btn-profile">
+      👤 GitHub Profile
+    </a>
+  </div>
+</div>
+
+<!-- STATS BAND -->
+<div class="overview-band">
+  <div class="overview-band-inner">
+    <div class="overview-stat">
+      <div class="num">30</div>
+      <div class="lbl">Movies Seeded</div>
+    </div>
+    <div class="overview-stat">
+      <div class="num">1536</div>
+      <div class="lbl">Vector Dimensions</div>
+    </div>
+    <div class="overview-stat">
+      <div class="num">2</div>
+      <div class="lbl">API Endpoints</div>
+    </div>
+    <div class="overview-stat">
+      <div class="num">100%</div>
+      <div class="lbl">Tests Passing</div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- WHAT I BUILT -->
+  <div class="section-rule">
+    <span class="section-num">01</span>
+    <span class="section-title">What I built</span>
+  </div>
+
+  <div class="card card-accent-green">
+    <p style="font-size:15px;line-height:1.8;margin-bottom:14px;color:rgba(226,232,240,0.9);">
+      A <strong style="color:white;">full-stack AI-powered Movie Recommendation Engine</strong>. The user types a mood or feeling in plain English — like <em>"something dark and psychologically intense"</em> — and the app uses AI semantic search to return the three most relevant movies from a database of 30 films.
+    </p>
+    <p style="font-size:14px;color:rgba(226,232,240,0.6);line-height:1.7;">
+      This is <strong>not keyword matching</strong>. The app converts both the movie descriptions and the user's query into 1536-dimensional vectors using OpenAI's embedding model. PostgreSQL with the pgvector extension then finds the three movies whose vectors are closest in meaning using cosine similarity.
+    </p>
+  </div>
+
+  <div class="callout ok">
+    <span class="callout-icon">✓</span>
+    <div>
+      <strong>Both servers are running and verified.</strong> Backend on <code>http://localhost:5088</code> — Frontend on <code>http://localhost:5173</code>. All 30 movies are seeded, embedded, and stored in PostgreSQL.
+    </div>
+  </div>
+
+  <!-- TECH STACK -->
+  <div class="section-rule">
+    <span class="section-num">02</span>
+    <span class="section-title">Tech stack used</span>
+  </div>
+
+  <div class="tech-row">
+    <div class="tech-item">
+      <span class="tech-icon">⚛️</span>
+      <span class="tech-name">React + Vite</span>
+      <span class="tech-role">Frontend UI</span>
+    </div>
+    <div class="tech-item">
+      <span class="tech-icon">🔷</span>
+      <span class="tech-name">.NET 10 API</span>
+      <span class="tech-role">Backend</span>
+    </div>
+    <div class="tech-item">
+      <span class="tech-icon">🐘</span>
+      <span class="tech-name">PostgreSQL 18</span>
+      <span class="tech-role">Database</span>
+    </div>
+    <div class="tech-item">
+      <span class="tech-icon">📐</span>
+      <span class="tech-name">pgvector 0.8.2</span>
+      <span class="tech-role">Vector search</span>
+    </div>
+    <div class="tech-item">
+      <span class="tech-icon">🔢</span>
+      <span class="tech-name">OpenAI API</span>
+      <span class="tech-role">Embeddings</span>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="padding:14px 20px;background:rgba(168,85,247,0.08);font-family:var(--mono);font-size:10px;letter-spacing:0.14em;color:var(--accent);border-bottom:1px solid var(--border);border-radius:12px 12px 0 0;">
+      NUGET PACKAGES INSTALLED
+    </div>
+    <pre style="margin:0;border-radius:0;"><span class="cm"># Three packages power the entire backend</span>
+Npgsql          <span class="cm">v10.0.2  — PostgreSQL driver for .NET</span>
+Pgvector        <span class="cm">          — bundled with Npgsql for vector type support</span>
+OpenAI          <span class="cm">v2.10.0  — official OpenAI SDK (EmbeddingClient)</span>
+Dapper          <span class="cm">v2.1.72  — lightweight SQL query helper</span></pre>
+  </div>
+
+  <!-- PROJECT STRUCTURE -->
+  <div class="section-rule">
+    <span class="section-num">03</span>
+    <span class="section-title">Project file structure</span>
+  </div>
+
+  <div class="file-tree">
+<span class="ft-dir">MovieApi/</span>                              <span class="ft-dim">← .NET backend</span>
+├── <span class="ft-highlight">Program.cs</span>                          <span class="ft-dim">← all endpoints + DI setup</span>
+├── MovieApi.csproj                     <span class="ft-dim">← NuGet packages</span>
+├── appsettings.Development.json        <span class="ft-dim">← DB + OpenAI keys (gitignored)</span>
+├── .gitignore                          <span class="ft-dim">← protects secret keys</span>
+└── models/
+    ├── <span class="ft-file">Movie.cs</span>                        <span class="ft-dim">← entity: title, genre, description</span>
+    ├── <span class="ft-file">MovieResult.cs</span>                  <span class="ft-dim">← API response DTO with score</span>
+    ├── <span class="ft-file">MovieData.cs</span>                    <span class="ft-dim">← 30 hard-coded seed movies</span>
+    └── Services/
+        └── <span class="ft-file">EmbeddingService.cs</span>         <span class="ft-dim">← wraps OpenAI EmbeddingClient</span>
+
+<span class="ft-dir">movie-ui/</span>                              <span class="ft-dim">← React frontend</span>
+├── index.html
+├── vite.config.js
+├── package.json
+└── src/
+    ├── <span class="ft-highlight">main.jsx</span>                        <span class="ft-dim">← React entry point</span>
+    ├── <span class="ft-highlight">App.jsx</span>                         <span class="ft-dim">← search form, state, API call</span>
+    ├── <span class="ft-highlight">MovieCard.jsx</span>                   <span class="ft-dim">← result card with score bar</span>
+    └── <span class="ft-highlight">App.css</span>                         <span class="ft-dim">← glassmorphism dark theme</span>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="section-rule">
+    <span class="section-num">04</span>
+    <span class="section-title">How the app works — step by step</span>
+  </div>
+
+  <div class="step-grid">
+
+    <div class="step-card">
+      <div class="step-header" style="background:linear-gradient(135deg,#1a0a3e,#0a1a3e);border-bottom:1px solid var(--border);">
+        <div>
+          <div class="step-label">Step 1</div>
+          <div class="step-focus">Database Setup</div>
+        </div>
+        <div style="font-family:var(--mono);font-size:28px;opacity:0.2;color:white;">01</div>
+      </div>
+      <div class="step-body">
+        <ul class="step-tasks">
+          <li>PostgreSQL 18.3 installed via Homebrew on macOS</li>
+          <li>Database <code>moviedb</code> created</li>
+          <li>pgvector 0.8.2 extension enabled with <code>CREATE EXTENSION vector</code></li>
+          <li>Table <code>movies</code> created with <code>embedding vector(1536)</code> column</li>
+          <li>Connection string stored in <code>appsettings.Development.json</code></li>
+        </ul>
+        <div class="step-done">✓ Verified with <strong>\d movies in psql</strong></div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header" style="background:linear-gradient(135deg,#6d28d9,#a855f7);border-bottom:1px solid rgba(168,85,247,0.3);">
+        <div>
+          <div class="step-label">Step 2</div>
+          <div class="step-focus">.NET Backend API</div>
+        </div>
+        <div style="font-family:var(--mono);font-size:28px;opacity:0.2;color:white;">02</div>
+      </div>
+      <div class="step-body">
+        <ul class="step-tasks">
+          <li>Scaffolded with <code>dotnet new webapi -n MovieApi</code></li>
+          <li>Installed Npgsql, Pgvector and OpenAI NuGet packages</li>
+          <li>Built <code>EmbeddingService</code> wrapping OpenAI SDK</li>
+          <li>Built <code>POST /api/seed</code> — embeds and stores all 30 movies</li>
+          <li>Built <code>POST /api/recommend</code> — cosine similarity query, top 3</li>
+          <li>CORS configured for <code>http://localhost:5173</code></li>
+        </ul>
+        <div class="step-done">✓ Verified with <strong>curl returns 3 results</strong></div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header" style="background:linear-gradient(135deg,#0e7490,#06b6d4);border-bottom:1px solid rgba(6,182,212,0.3);">
+        <div>
+          <div class="step-label">Step 3</div>
+          <div class="step-focus">React Frontend</div>
+        </div>
+        <div style="font-family:var(--mono);font-size:28px;opacity:0.2;color:white;">03</div>
+      </div>
+      <div class="step-body">
+        <ul class="step-tasks">
+          <li>Manually scaffolded with Vite 5 + React 18 (Node 20 compatible)</li>
+          <li>Single page: text input + suggestion chips + Find Movies button</li>
+          <li>Calls <code>POST /api/recommend</code> with mood text</li>
+          <li>3 result cards: title, genre, description, similarity % with animated score bar</li>
+          <li>Multi-colour loading ring spinner while API is thinking</li>
+          <li>Error message if API is unreachable</li>
+        </ul>
+        <div class="step-done">✓ Verified with <strong>typing a mood shows 3 cards</strong></div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header" style="background:linear-gradient(135deg,#065f46,#10b981);border-bottom:1px solid rgba(16,185,129,0.3);">
+        <div>
+          <div class="step-label">Step 4</div>
+          <div class="step-focus">UI Polish</div>
+        </div>
+        <div style="font-family:var(--mono);font-size:28px;opacity:0.2;color:white;">04</div>
+      </div>
+      <div class="step-body">
+        <ul class="step-tasks">
+          <li>Animated background orbs (purple / blue / pink gradient)</li>
+          <li>Glassmorphism cards with backdrop blur</li>
+          <li>Medal emojis 🥇🥈🥉 with gold/silver/bronze score bars</li>
+          <li>Header compacts after first search</li>
+          <li>Suggestion chips prefill the search input</li>
+          <li>Fully responsive on mobile screens</li>
+        </ul>
+        <div class="step-done">✓ Running live at <strong>http://localhost:5173</strong></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- DATABASE SCHEMA -->
+  <div class="section-rule">
+    <span class="section-num">05</span>
+    <span class="section-title">Database schema</span>
+  </div>
+
+  <pre><span class="cm">-- Extension enabling vector support in PostgreSQL</span>
+<span class="kw">CREATE EXTENSION IF NOT EXISTS</span> vector;
+
+<span class="cm">-- The movies table — each row is one film</span>
+<span class="kw">CREATE TABLE</span> movies (
+  id          <span class="type">SERIAL PRIMARY KEY</span>,
+  title       <span class="type">TEXT NOT NULL</span>,
+  genre       <span class="type">TEXT NOT NULL</span>,
+  description <span class="type">TEXT NOT NULL</span>,
+  embedding   <span class="type">vector(1536)</span>,    <span class="cm">← 1536 floats generated by OpenAI</span>
+  created_at  <span class="type">TIMESTAMPTZ DEFAULT NOW()</span>
+);</pre>
+
+  <div class="callout info">
+    <span class="callout-icon">ℹ</span>
+    <div>
+      <strong>Verified live:</strong> PostgreSQL 18.3 (Homebrew) · pgvector v0.8.2 · <code>SELECT COUNT(*) FROM movies</code> returns <strong>30</strong>.
+    </div>
+  </div>
+
+  <!-- THE TWO ENDPOINTS -->
+  <div class="section-rule">
+    <span class="section-num">06</span>
+    <span class="section-title">The two API endpoints I built</span>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="method post">POST</span></div>
+    <div>
+      <div class="endpoint-path">/api/seed</div>
+      <div class="endpoint-desc">Loops through all 30 movies, calls OpenAI to embed each description, stores the 1536-float vector in PostgreSQL. Idempotent — deletes existing rows first. Returns: { seededCount: 30 }</div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div><span class="method post">POST</span></div>
+    <div>
+      <div class="endpoint-path">/api/recommend</div>
+      <div class="endpoint-desc">Accepts { mood: "..." } — embeds the mood text, runs cosine similarity with pgvector's &lt;=&gt; operator against all 30 movies, returns top 3 as [{ title, genre, description, score }]. Score is 0–1.</div>
+    </div>
+  </div>
+
+  <div class="card card-accent-green" style="margin-top:16px;">
+    <p style="font-size:13px;margin-bottom:10px;font-weight:600;">The pgvector query at the heart of the app:</p>
+    <pre style="margin:0;font-size:11px;"><span class="kw">SELECT</span> title, genre, description,
+       <span class="num">1</span> - (embedding <span class="kw">&lt;=&gt;</span> @queryVec::<span class="type">vector</span>) <span class="kw">AS</span> score
+<span class="kw">FROM</span>   movies
+<span class="kw">ORDER  BY</span> embedding <span class="kw">&lt;=&gt;</span> @queryVec::<span class="type">vector</span>
+<span class="kw">LIMIT</span>  <span class="num">3</span>;</pre>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px;">
+      <code>&lt;=&gt;</code> is pgvector's cosine <em>distance</em> operator. <code>1 - distance = similarity score</code>. The database orders by distance ascending (closest first) and returns the top 3.
+    </p>
+  </div>
+
+  <!-- LIVE TEST RESULTS -->
+  <div class="section-rule">
+    <span class="section-num">07</span>
+    <span class="section-title">Live test results</span>
+  </div>
+
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div class="test-row" style="background:rgba(168,85,247,0.06);font-family:var(--mono);font-size:10px;letter-spacing:0.14em;color:var(--accent);">
+      <span>TEST</span><span>RESULT</span>
+    </div>
+    <div class="test-row">
+      <span><code>POST /api/seed</code> — seed all 30 movies</span>
+      <span class="test-badge test-pass">PASS — seededCount: 30</span>
+    </div>
+    <div class="test-row">
+      <span><code>SELECT COUNT(*) FROM movies</code></span>
+      <span class="test-badge test-pass">PASS — 30 rows</span>
+    </div>
+    <div class="test-row">
+      <span>Query: <em>"something funny with a twist ending"</em></span>
+      <span class="test-badge test-pass">PASS — Knives Out #1</span>
+    </div>
+    <div class="test-row">
+      <span>Query: <em>"funny and clever"</em> — must NOT return Hereditary</span>
+      <span class="test-badge test-pass">PASS — horror films absent</span>
+    </div>
+    <div class="test-row">
+      <span>React UI renders 3 cards with score bars</span>
+      <span class="test-badge test-pass">PASS — live at 5173</span>
+    </div>
+    <div class="test-row">
+      <span>Loading spinner shows during API call</span>
+      <span class="test-badge test-pass">PASS</span>
+    </div>
+    <div class="test-row">
+      <span>Error message shows when API is unreachable</span>
+      <span class="test-badge test-pass">PASS</span>
+    </div>
+    <div class="test-row">
+      <span>Empty input — button stays disabled</span>
+      <span class="test-badge test-pass">PASS</span>
+    </div>
+    <div class="test-row">
+      <span>CORS — React calls API with no browser errors</span>
+      <span class="test-badge test-pass">PASS</span>
+    </div>
+  </div>
+
+  <!-- 30 MOVIES -->
+  <div class="section-rule">
+    <span class="section-num">08</span>
+    <span class="section-title">The 30 movies I embedded</span>
+  </div>
+
+  <p style="font-size:14px;color:var(--muted);margin-bottom:16px;">All 30 descriptions were converted to 1536-dimensional vectors and stored in PostgreSQL.</p>
+
+  <div class="movie-grid">
+    <div class="movie-item"><span class="movie-num">01</span><div><div class="movie-title">The Dark Knight</div><div class="movie-genre">Action / Thriller</div></div></div>
+    <div class="movie-item"><span class="movie-num">02</span><div><div class="movie-title">The Grand Budapest Hotel</div><div class="movie-genre">Comedy</div></div></div>
+    <div class="movie-item"><span class="movie-num">03</span><div><div class="movie-title">Interstellar</div><div class="movie-genre">Sci-Fi</div></div></div>
+    <div class="movie-item"><span class="movie-num">04</span><div><div class="movie-title">The Notebook</div><div class="movie-genre">Romance</div></div></div>
+    <div class="movie-item"><span class="movie-num">05</span><div><div class="movie-title">Get Out</div><div class="movie-genre">Horror / Thriller</div></div></div>
+    <div class="movie-item"><span class="movie-num">06</span><div><div class="movie-title">Spirited Away</div><div class="movie-genre">Animation / Fantasy</div></div></div>
+    <div class="movie-item"><span class="movie-num">07</span><div><div class="movie-title">The Shawshank Redemption</div><div class="movie-genre">Drama</div></div></div>
+    <div class="movie-item"><span class="movie-num">08</span><div><div class="movie-title">Knives Out</div><div class="movie-genre">Mystery / Comedy</div></div></div>
+    <div class="movie-item"><span class="movie-num">09</span><div><div class="movie-title">Parasite</div><div class="movie-genre">Thriller / Drama</div></div></div>
+    <div class="movie-item"><span class="movie-num">10</span><div><div class="movie-title">La La Land</div><div class="movie-genre">Musical / Romance</div></div></div>
+    <div class="movie-item"><span class="movie-num">11</span><div><div class="movie-title">Mad Max: Fury Road</div><div class="movie-genre">Action</div></div></div>
+    <div class="movie-item"><span class="movie-num">12</span><div><div class="movie-title">Her</div><div class="movie-genre">Sci-Fi / Romance</div></div></div>
+    <div class="movie-item"><span class="movie-num">13</span><div><div class="movie-title">Coco</div><div class="movie-genre">Animation / Family</div></div></div>
+    <div class="movie-item"><span class="movie-num">14</span><div><div class="movie-title">Hereditary</div><div class="movie-genre">Horror</div></div></div>
+    <div class="movie-item"><span class="movie-num">15</span><div><div class="movie-title">The Social Network</div><div class="movie-genre">Drama / Biopic</div></div></div>
+    <div class="movie-item"><span class="movie-num">16</span><div><div class="movie-title">Whiplash</div><div class="movie-genre">Drama</div></div></div>
+    <div class="movie-item"><span class="movie-num">17</span><div><div class="movie-title">Jurassic Park</div><div class="movie-genre">Adventure / Sci-Fi</div></div></div>
+    <div class="movie-item"><span class="movie-num">18</span><div><div class="movie-title">Eternal Sunshine of the Spotless Mind</div><div class="movie-genre">Romance / Sci-Fi</div></div></div>
+    <div class="movie-item"><span class="movie-num">19</span><div><div class="movie-title">The Princess Bride</div><div class="movie-genre">Fantasy / Comedy</div></div></div>
+    <div class="movie-item"><span class="movie-num">20</span><div><div class="movie-title">Arrival</div><div class="movie-genre">Sci-Fi</div></div></div>
+    <div class="movie-item"><span class="movie-num">21</span><div><div class="movie-title">Titanic</div><div class="movie-genre">Romance / Drama</div></div></div>
+    <div class="movie-item"><span class="movie-num">22</span><div><div class="movie-title">A Quiet Place</div><div class="movie-genre">Horror / Thriller</div></div></div>
+    <div class="movie-item"><span class="movie-num">23</span><div><div class="movie-title">The Lion King</div><div class="movie-genre">Animation / Drama</div></div></div>
+    <div class="movie-item"><span class="movie-num">24</span><div><div class="movie-title">Pulp Fiction</div><div class="movie-genre">Crime / Drama</div></div></div>
+    <div class="movie-item"><span class="movie-num">25</span><div><div class="movie-title">Good Will Hunting</div><div class="movie-genre">Drama</div></div></div>
+    <div class="movie-item"><span class="movie-num">26</span><div><div class="movie-title">The Truman Show</div><div class="movie-genre">Drama / Sci-Fi</div></div></div>
+    <div class="movie-item"><span class="movie-num">27</span><div><div class="movie-title">Inside Out</div><div class="movie-genre">Animation</div></div></div>
+    <div class="movie-item"><span class="movie-num">28</span><div><div class="movie-title">No Country for Old Men</div><div class="movie-genre">Thriller</div></div></div>
+    <div class="movie-item"><span class="movie-num">29</span><div><div class="movie-title">The Martian</div><div class="movie-genre">Sci-Fi / Comedy</div></div></div>
+    <div class="movie-item"><span class="movie-num">30</span><div><div class="movie-title">Marriage Story</div><div class="movie-genre">Drama / Romance</div></div></div>
+  </div>
+
+  <!-- HOW AI WORKS -->
+  <div class="section-rule">
+    <span class="section-num">09</span>
+    <span class="section-title">How the AI part actually works</span>
+  </div>
+
+  <div class="card card-accent-blue">
+    <p style="font-size:14px;line-height:1.8;margin-bottom:12px;">
+      OpenAI's <strong>text-embedding-3-small</strong> model converts any piece of text into a list of <strong>1536 floating-point numbers</strong>. These numbers are not random — they are mathematically structured so that text with similar meaning produces numbers that point in a similar direction in a 1536-dimensional space.
+    </p>
+    <p style="font-size:14px;line-height:1.8;margin-bottom:12px;">
+      For example, <em>"Interstellar"</em> (a film about space, time, and family) and a query like <em>"epic sci-fi with emotional depth"</em> will produce vectors that are closely aligned. <em>"Hereditary"</em> (a horror film) will produce a very different vector and score much lower.
+    </p>
+    <p style="font-size:14px;line-height:1.8;">
+      The angle between two vectors is measured by <strong>cosine similarity</strong>. If two vectors point in the same direction, the angle is 0° and similarity is 1.0 (100%). If they point in completely different directions, similarity is 0. pgvector computes this inside PostgreSQL using the <code>&lt;=&gt;</code> operator.
+    </p>
+  </div>
+
+  <div class="callout warn">
+    <span class="callout-icon">⚠</span>
+    <div>
+      <strong>Important:</strong> All 30 movies must be embedded with the <em>same model</em> (text-embedding-3-small). Mixing vectors from different models breaks similarity results because the number spaces are incompatible — a vector from one model has no meaningful relationship to a vector from another.
+    </div>
+  </div>
+
+  <!-- CODE REVIEW Q&A -->
+  <div class="section-rule">
+    <span class="section-num">10</span>
+    <span class="section-title">Code review — questions &amp; answers</span>
+  </div>
+
+  <p style="font-size:14px;color:var(--muted);margin-bottom:20px;">
+    These are the 5 questions from the assignment's code review, answered in plain English.
+  </p>
+
+  <!-- Q1 -->
+  <div class="card card-accent-blue" style="margin-bottom:14px;">
+    <div style="display:flex;align-items:flex-start;gap:14px;">
+      <div style="font-family:var(--mono);font-size:10px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;padding:4px 10px;border-radius:6px;flex-shrink:0;margin-top:2px;">Q1</div>
+      <div>
+        <p style="font-size:14px;font-weight:600;color:white;margin-bottom:10px;">What is stored in the <code>embedding</code> column in your database? What type is it and what do the numbers mean?</p>
+        <p style="font-size:14px;line-height:1.75;color:rgba(226,232,240,0.9);margin-bottom:10px;">
+          The <code>embedding</code> column stores a list of <strong>1536 decimal numbers</strong> — like <code>[0.023, -0.417, 0.891, …]</code> going on for 1536 values. The data type is <code>vector(1536)</code>, which is a special type added by the pgvector extension.
+        </p>
+        <p style="font-size:14px;line-height:1.75;color:rgba(226,232,240,0.9);margin-bottom:10px;">
+          These numbers are not random. When I send a movie description like <em>"A masked vigilante fights a chaotic criminal mastermind…"</em> to the OpenAI API, it reads and understands the meaning of the text and then converts that meaning into these 1536 numbers. Think of it like GPS coordinates — except instead of locating a place on a 2D map, these numbers locate the <strong>meaning</strong> of the text in a 1536-dimensional space.
+        </p>
+        <p style="font-size:14px;line-height:1.75;color:var(--muted);">
+          Two movie descriptions that are similar in theme and tone will produce numbers that are close together in that space. Two completely different movies will produce numbers that are far apart. That closeness is exactly what we measure when recommending films.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q2 -->
+  <div class="card card-accent-gold" style="margin-bottom:14px;">
+    <div style="display:flex;align-items:flex-start;gap:14px;">
+      <div style="font-family:var(--mono);font-size:10px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;padding:4px 10px;border-radius:6px;flex-shrink:0;margin-top:2px;">Q2</div>
+      <div>
+        <p style="font-size:14px;font-weight:600;color:white;margin-bottom:10px;">Why is <code>/api/recommend</code> a POST request and not a GET request?</p>
+        <p style="font-size:14px;line-height:1.75;color:rgba(226,232,240,0.9);margin-bottom:10px;">
+          GET requests put their data in the URL — like <code>/api/recommend?mood=something+funny</code>. That works fine for short, simple values, but the user's mood input could be a long sentence or paragraph, and URLs have a length limit. Some browsers or servers will reject or cut off long URLs.
+        </p>
+        <p style="font-size:14px;line-height:1.75;color:rgba(226,232,240,0.9);margin-bottom:10px;">
+          POST requests send their data in the <strong>request body</strong>, which has no practical length limit and is cleaner for structured data like JSON — <code>{ "mood": "…" }</code>.
+        </p>
+        <p style="font-size:14px;line-height:1.75;color:var(--muted);">
+          There is also a semantic reason: GET should be used for <em>fetching</em> existing data without changing anything. Our endpoint is doing something more like a computation — it is sending text to OpenAI and running a database query — which makes POST more appropriate even if nothing is being permanently saved.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q3 -->
+  <div class="card card-accent-left" style="margin-bottom:14px;">
+    <div style="display:flex;align-items:flex-start;gap:14px;">
+      <div style="font-family:var(--mono);font-size:10px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;padding:4px 10px;border-radius:6px;flex-shrink:0;margin-top:2px;">Q3</div>
+      <div>
+        <p style="font-size:14px;font-weight:600;color:white;margin-bottom:10px;">What does the <code>&lt;=&gt;</code> operator do in your SQL query? What would happen if you removed the <code>1 -</code> from the score calculation?</p>
+        <p style="font-size:14px;line-height:1.75;color:rgba(226,232,240,0.9);margin-bottom:10px;">
+          The <code>&lt;=&gt;</code> operator is pgvector's way of measuring the <strong>cosine distance</strong> between two vectors — basically, how different two pieces of text are in meaning. It gives a number between 0 and 1 where <strong>0 means identical</strong> and <strong>1 means completely different</strong>.
+        </p>
+        <p style="font-size:14px;line-height:1.75;color:rgba(226,232,240,0.9);margin-bottom:10px;">
+          I need <em>similarity</em>, not distance — so I use <code>1 - distance</code> to flip it. Now <strong>1 means perfect match</strong> and <strong>0 means nothing in common</strong>. That is what I show as the percentage score on the result cards.
+        </p>
+        <p style="font-size:14px;line-height:1.75;color:var(--muted);">
+          If I removed the <code>1 -</code>, the score would show the distance instead of the similarity. The worst matching movies would score 0.9+ and the best match would score near 0. The ORDER BY clause would still work (because sorting by distance ascending is the same as sorting by similarity descending), but the number displayed on each card would be backwards and confusing.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q4 -->
+  <div class="card card-accent-green" style="margin-bottom:14px;">
+    <div style="display:flex;align-items:flex-start;gap:14px;">
+      <div style="font-family:var(--mono);font-size:10px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;padding:4px 10px;border-radius:6px;flex-shrink:0;margin-top:2px;">Q4</div>
+      <div>
+        <p style="font-size:14px;font-weight:600;color:white;margin-bottom:10px;">If the OpenAI API goes down while a user is searching, what happens in your app right now? What should ideally happen?</p>
+        <p style="font-size:14px;line-height:1.75;color:rgba(226,232,240,0.9);margin-bottom:10px;">
+          <strong>Right now:</strong> The .NET backend throws an exception when the OpenAI call fails, the request returns a 500 error, and the React frontend catches that error and shows the message: <em>"Server error: 500"</em>. The user sees the error box in the UI — the app does not crash or show a blank screen.
+        </p>
+        <p style="font-size:14px;line-height:1.75;color:rgba(226,232,240,0.9);margin-bottom:10px;">
+          <strong>Ideally:</strong> The backend should catch the OpenAI exception specifically and return a clear, friendly error — like <em>"AI service is temporarily unavailable, please try again in a moment"</em> — rather than a generic 500. The frontend could also add a retry button so the user does not have to retype their mood. For production, you would add exponential backoff (try again automatically with increasing delays) and potentially a fallback to a simpler keyword search if the AI is down.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q5 -->
+  <div class="card card-accent-blue" style="margin-bottom:14px;">
+    <div style="display:flex;align-items:flex-start;gap:14px;">
+      <div style="font-family:var(--mono);font-size:10px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;padding:4px 10px;border-radius:6px;flex-shrink:0;margin-top:2px;">Q5</div>
+      <div>
+        <p style="font-size:14px;font-weight:600;color:white;margin-bottom:10px;">If you switched from <code>text-embedding-3-small</code> to <code>text-embedding-3-large</code> halfway through, why would your search results break — even if the new model is "better"?</p>
+        <p style="font-size:14px;line-height:1.75;color:rgba(226,232,240,0.9);margin-bottom:10px;">
+          Imagine two different people invented two different measuring systems for "meaning" — one uses metres, the other uses miles. Even if one ruler is more precise, you cannot compare a measurement from one system to a measurement from the other system. They are not compatible.
+        </p>
+        <p style="font-size:14px;line-height:1.75;color:rgba(226,232,240,0.9);margin-bottom:10px;">
+          That is exactly what happens with different embedding models. The 30 movies in my database were embedded using <code>text-embedding-3-small</code>, which maps text into a particular mathematical space. If I switch to <code>text-embedding-3-large</code> for the user's query, it maps the query into a <em>completely different</em> mathematical space. Comparing the two is meaningless — the cosine similarity numbers would be random noise.
+        </p>
+        <p style="font-size:14px;line-height:1.75;color:var(--muted);">
+          The fix is to re-embed all 30 movies with the new model first — delete all existing rows, run <code>/api/seed</code> again — so everything lives in the same space. Only then will comparisons be valid. Also note: <code>text-embedding-3-large</code> produces 3072-dimensional vectors, so the database column would need to change from <code>vector(1536)</code> to <code>vector(3072)</code> as well.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBMISSION CHECKLIST -->
+  <div class="section-rule">
+    <span class="section-num">11</span>
+    <span class="section-title">Submission checklist</span>
+  </div>
+
+  <ul class="checklist">
+    <li><span class="check-done">✓</span>PostgreSQL 18 installed with pgvector 0.8.2 enabled</li>
+    <li><span class="check-done">✓</span><code>movies</code> table with <code>embedding vector(1536)</code> column</li>
+    <li><span class="check-done">✓</span><code>POST /api/seed</code> seeds all 30 movies — returns seededCount: 30</li>
+    <li><span class="check-done">✓</span><code>POST /api/recommend</code> returns semantically relevant top 3</li>
+    <li><span class="check-done">✓</span>React UI: input, button, loading state, 3 result cards</li>
+    <li><span class="check-done">✓</span>Similarity score shown as % with animated bar per card</li>
+    <li><span class="check-done">✓</span>Error handling when API is unreachable</li>
+    <li><span class="check-done">✓</span>CORS configured — no browser errors</li>
+    <li><span class="check-done">✓</span><code>appsettings.Development.json</code> in <code>.gitignore</code></li>
+    <li><span class="check-done">✓</span>OpenAI API key stored in config, never in code</li>
+    <li><span class="check-done">✓</span>Both projects run from clean start — <code>dotnet run</code> + <code>npm run dev</code></li>
+    <li><span class="check-done">✓</span>Querying <em>"funny and clever"</em> does NOT return Hereditary</li>
+  </ul>
+
+  <div class="callout ok" style="margin-top:24px;">
+    <span class="callout-icon">✓</span>
+    <div>
+      <strong>Project complete.</strong> Full-stack AI-powered movie recommendation engine built, tested, and running. Backend on .NET 10, frontend on React + Vite, AI via OpenAI embeddings, vector search via pgvector in PostgreSQL 18.
+    </div>
+  </div>
+
+  <!-- CODE DEEP DIVE -->
+  <div class="section-rule">
+    <span class="section-num">12</span>
+    <span class="section-title">Full code walkthrough — every file explained</span>
+  </div>
+
+  <p style="font-size:14px;color:var(--muted);margin-bottom:24px;">This section documents exactly what each file does, what code is inside it, and why it exists. Read this to understand the entire application from start to finish.</p>
+
+  <!-- ARCHITECTURE FLOW -->
+  <div class="card" style="margin-bottom:24px;">
+    <p style="font-weight:600;margin-bottom:14px;">🗺 End-to-end data flow</p>
+    <div class="arch-flow">
+      <div class="arch-node">
+        <span class="arch-icon">👤</span>
+        <span class="arch-name">User Types</span>
+        <span class="arch-tech">Browser</span>
+      </div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-node">
+        <span class="arch-icon">⚛️</span>
+        <span class="arch-name">App.jsx</span>
+        <span class="arch-tech">React + Vite</span>
+      </div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-node highlight">
+        <span class="arch-icon">🔷</span>
+        <span class="arch-name">/api/recommend</span>
+        <span class="arch-tech">.NET 10 API</span>
+      </div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-node">
+        <span class="arch-icon">🔢</span>
+        <span class="arch-name">EmbeddingService</span>
+        <span class="arch-tech">OpenAI SDK</span>
+      </div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-node">
+        <span class="arch-icon">🐘</span>
+        <span class="arch-name">pgvector Query</span>
+        <span class="arch-tech">PostgreSQL 18</span>
+      </div>
+      <span class="arch-arrow">→</span>
+      <div class="arch-node">
+        <span class="arch-icon">🎬</span>
+        <span class="arch-name">Top 3 Movies</span>
+        <span class="arch-tech">JSON response</span>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px;">The seed flow is identical except it loops 30 movies and only writes to the database — no user input required.</p>
+  </div>
+
+  <!-- Program.cs -->
+  <div class="card card-accent-left" style="margin-bottom:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+      <div>
+        <span style="font-family:var(--mono);font-size:10px;background:var(--accent);color:white;padding:2px 8px;border-radius:3px;">BACKEND</span>
+        <h3 style="font-family:var(--display);font-size:20px;font-weight:700;margin-top:8px;">Program.cs</h3>
+        <p style="font-size:13px;color:var(--muted);">The brain of the entire backend — dependency injection, CORS, and both API endpoints live here.</p>
+      </div>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;">~150 lines</span>
+    </div>
+    <p style="font-size:14px;line-height:1.75;margin-bottom:12px;"><strong>What it does:</strong> Instead of multiple controller files, this uses .NET's Minimal API pattern — everything is in one file. It registers <code>EmbeddingService</code> as a singleton (one shared instance), sets up CORS to allow the React app on port 5173 to call the API, then defines two endpoints.</p>
+    <pre style="font-size:11px;"><span class="cm">// --- Dependency Injection ---</span>
+<span class="kw">var</span> connectionString = builder.Configuration.GetConnectionString(<span class="str">"DefaultConnection"</span>);
+<span class="kw">var</span> apiKey           = builder.Configuration[<span class="str">"OpenAI:ApiKey"</span>];
+builder.Services.AddSingleton(<span class="kw">new</span> <span class="type">EmbeddingService</span>(apiKey));
+
+<span class="cm">// --- CORS for React on port 5173 ---</span>
+builder.Services.AddCors(options =&gt; options.AddPolicy(<span class="str">"AllowFrontend"</span>,
+    p =&gt; p.WithOrigins(<span class="str">"http://localhost:5173"</span>).AllowAnyMethod().AllowAnyHeader()));
+
+<span class="cm">// --- POST /api/seed ---</span>
+app.MapPost(<span class="str">"/api/seed"</span>, <span class="kw">async</span> (<span class="type">EmbeddingService</span> embedder) =&gt; {
+    <span class="kw">using var</span> conn = <span class="kw">new</span> <span class="type">NpgsqlConnection</span>(connectionString);
+    <span class="kw">await</span> conn.ExecuteAsync(<span class="str">"DELETE FROM movies"</span>);      <span class="cm">// clear old rows</span>
+    <span class="kw">foreach</span> (<span class="kw">var</span> movie <span class="kw">in</span> <span class="type">MovieData</span>.Movies) {
+        <span class="kw">var</span> vec = <span class="kw">await</span> embedder.GetEmbeddingAsync(movie.Description); <span class="cm">// call OpenAI</span>
+        <span class="kw">await</span> conn.ExecuteAsync(<span class="str">"INSERT INTO movies (title,genre,description,embedding) VALUES (@T,@G,@D,@V::vector)"</span>,
+            <span class="kw">new</span> { T=movie.Title, G=movie.Genre, D=movie.Description, V=FormatVector(vec) });
+    }
+    <span class="kw">return</span> Results.Ok(<span class="kw">new</span> { seededCount = <span class="type">MovieData</span>.Movies.Count });
+});
+
+<span class="cm">// --- POST /api/recommend ---</span>
+app.MapPost(<span class="str">"/api/recommend"</span>, <span class="kw">async</span> (<span class="type">RecommendRequest</span> req, <span class="type">EmbeddingService</span> embedder) =&gt; {
+    <span class="kw">var</span> queryVec = <span class="kw">await</span> embedder.GetEmbeddingAsync(req.Mood);  <span class="cm">// embed user mood</span>
+    <span class="kw">using var</span> conn = <span class="kw">new</span> <span class="type">NpgsqlConnection</span>(connectionString);
+    <span class="kw">var</span> results = <span class="kw">await</span> conn.QueryAsync&lt;<span class="type">MovieResult</span>&gt;(<span class="str">"""
+        SELECT title, genre, description,
+               1 - (embedding &lt;=&gt; @queryVec::vector) AS score
+        FROM   movies
+        ORDER  BY embedding &lt;=&gt; @queryVec::vector
+        LIMIT  3
+    """</span>, <span class="kw">new</span> { queryVec = FormatVector(queryVec) });
+    <span class="kw">return</span> Results.Ok(results);
+});
+
+<span class="cm">// --- Helper: float[] → "[0.1,0.2,...]" for PostgreSQL ---</span>
+<span class="kw">static string</span> FormatVector(<span class="type">float</span>[] v) =&gt;
+    <span class="str">"["</span> + <span class="type">string</span>.Join(<span class="str">","</span>, v.Select(x =&gt; x.ToString(<span class="str">"G9"</span>, <span class="type">CultureInfo</span>.InvariantCulture))) + <span class="str">"]"</span>;
+
+<span class="cm">// --- Request DTO ---</span>
+<span class="kw">record</span> <span class="type">RecommendRequest</span>(<span class="type">string</span> Mood);</pre>
+    <div class="callout info" style="margin-top:12px;margin-bottom:0;">
+      <span class="callout-icon">ℹ</span>
+      <div style="font-size:13px;"><strong>Why FormatVector?</strong> Npgsql can handle the <code>vector</code> type natively for reading, but for parametrised inserts we need to pass it as the PostgreSQL literal string format <code>[0.1,-0.3,...]</code> and cast it with <code>::vector</code>. FormatVector converts a C# <code>float[]</code> into that exact string.</div>
+    </div>
+  </div>
+
+  <!-- EmbeddingService.cs -->
+  <div class="card card-accent-blue" style="margin-bottom:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+      <div>
+        <span style="font-family:var(--mono);font-size:10px;background:var(--accent2);color:white;padding:2px 8px;border-radius:3px;">BACKEND / AI</span>
+        <h3 style="font-family:var(--display);font-size:20px;font-weight:700;margin-top:8px;">models/Services/EmbeddingService.cs</h3>
+        <p style="font-size:13px;color:var(--muted);">Wraps the OpenAI SDK — the only file that talks to the AI.</p>
+      </div>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;">~20 lines</span>
+    </div>
+    <p style="font-size:14px;line-height:1.75;margin-bottom:12px;"><strong>What it does:</strong> Creates an <code>EmbeddingClient</code> using the <code>text-embedding-3-small</code> model. When <code>GetEmbeddingAsync(text)</code> is called, it sends the text to OpenAI and gets back 1536 floats. That array is what gets stored in (or compared against) PostgreSQL.</p>
+    <pre style="font-size:11px;"><span class="kw">public class</span> <span class="type">EmbeddingService</span>
+{
+    <span class="kw">private readonly</span> <span class="type">EmbeddingClient</span> _client;
+
+    <span class="kw">public</span> EmbeddingService(<span class="type">string</span> apiKey)
+    {
+        _client = <span class="kw">new</span> <span class="type">OpenAIClient</span>(apiKey)
+            .GetEmbeddingClient(<span class="str">"text-embedding-3-small"</span>);
+    }
+
+    <span class="kw">public async</span> <span class="type">Task</span>&lt;<span class="type">float</span>[]&gt; GetEmbeddingAsync(<span class="type">string</span> text)
+    {
+        <span class="type">ClientResult</span>&lt;<span class="type">Embedding</span>&gt; result = <span class="kw">await</span> _client.GenerateEmbeddingAsync(text);
+        <span class="kw">return</span> result.Value.ToFloats().ToArray();  <span class="cm">// 1536 floats</span>
+    }
+}</pre>
+    <div class="callout info" style="margin-top:12px;margin-bottom:0;">
+      <span class="callout-icon">ℹ</span>
+      <div style="font-size:13px;"><strong>Why a separate class?</strong> So that <code>Program.cs</code> does not import OpenAI SDK directly. It also makes it easy to swap the model or provider later — only this one file needs to change.</div>
+    </div>
+  </div>
+
+  <!-- MovieData.cs -->
+  <div class="card card-accent-gold" style="margin-bottom:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+      <div>
+        <span style="font-family:var(--mono);font-size:10px;background:var(--gold);color:white;padding:2px 8px;border-radius:3px;">BACKEND / DATA</span>
+        <h3 style="font-family:var(--display);font-size:20px;font-weight:700;margin-top:8px;">models/MovieData.cs</h3>
+        <p style="font-size:13px;color:var(--muted);">The 30 hard-coded movies that get seeded into PostgreSQL.</p>
+      </div>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;">~80 lines</span>
+    </div>
+    <p style="font-size:14px;line-height:1.75;margin-bottom:12px;"><strong>What it does:</strong> A static class with one property: a read-only list of 30 <code>Movie</code> objects. Each has a title, genre, and a descriptive sentence. The description is what gets embedded — not the title. This means search works by <em>meaning</em>, not by recognising a movie name.</p>
+    <pre style="font-size:11px;"><span class="kw">public static class</span> <span class="type">MovieData</span>
+{
+    <span class="kw">public static readonly</span> <span class="type">IReadOnlyList</span>&lt;<span class="type">Movie</span>&gt; Movies = <span class="kw">new</span> <span class="type">List</span>&lt;<span class="type">Movie</span>&gt;
+    {
+        <span class="kw">new</span>(<span class="str">"The Dark Knight"</span>,    <span class="str">"Action / Thriller"</span>,
+            <span class="str">"A masked vigilante fights a chaotic criminal mastermind in a corrupt city."</span>),
+        <span class="kw">new</span>(<span class="str">"Knives Out"</span>,          <span class="str">"Mystery / Comedy"</span>,
+            <span class="str">"A detective investigates a wealthy family after their patriarch is found dead."</span>),
+        <span class="cm">// ... 28 more movies</span>
+    };
+}</pre>
+  </div>
+
+  <!-- Model files -->
+  <div class="card card-accent-green" style="margin-bottom:20px;">
+    <div style="margin-bottom:12px;">
+      <span style="font-family:var(--mono);font-size:10px;background:var(--success);color:white;padding:2px 8px;border-radius:3px;">BACKEND / MODELS</span>
+      <h3 style="font-family:var(--display);font-size:20px;font-weight:700;margin-top:8px;">models/Movie.cs &amp; models/MovieResult.cs</h3>
+      <p style="font-size:13px;color:var(--muted);">Two tiny C# records that define the data shapes used throughout the app.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div>
+        <p style="font-family:var(--mono);font-size:10px;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">MOVIE.CS — seed input shape</p>
+        <pre style="margin:0;font-size:11px;"><span class="kw">namespace</span> MovieApi.Models;
+
+<span class="kw">public class</span> <span class="type">Movie</span>
+{
+    <span class="kw">public string</span> Title       { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="str">""</span>;
+    <span class="kw">public string</span> Genre       { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="str">""</span>;
+    <span class="kw">public string</span> Description { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="str">""</span>;
+}</pre>
+      </div>
+      <div>
+        <p style="font-family:var(--mono);font-size:10px;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">MOVIERESULT.CS — API response shape</p>
+        <pre style="margin:0;font-size:11px;"><span class="kw">namespace</span> MovieApi.Models;
+
+<span class="kw">public class</span> <span class="type">MovieResult</span>
+{
+    <span class="kw">public string</span> Title       { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="str">""</span>;
+    <span class="kw">public string</span> Genre       { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="str">""</span>;
+    <span class="kw">public string</span> Description { <span class="kw">get</span>; <span class="kw">set</span>; } = <span class="str">""</span>;
+    <span class="kw">public double</span> Score       { <span class="kw">get</span>; <span class="kw">set</span>; }       <span class="cm">// 0.0 – 1.0</span>
+}</pre>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:12px;"><strong>Movie</strong> is the input shape used in <code>MovieData.cs</code> for seeding. <strong>MovieResult</strong> adds a <code>Score</code> property — Dapper maps the SQL <code>score</code> column directly into this when the query runs.</p>
+  </div>
+
+  <!-- App.jsx -->
+  <div class="card card-accent-blue" style="margin-bottom:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+      <div>
+        <span style="font-family:var(--mono);font-size:10px;background:var(--accent2);color:white;padding:2px 8px;border-radius:3px;">FRONTEND</span>
+        <h3 style="font-family:var(--display);font-size:20px;font-weight:700;margin-top:8px;">src/App.jsx</h3>
+        <p style="font-size:13px;color:var(--muted);">The main React component — all state, all logic, all layout.</p>
+      </div>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;">~120 lines</span>
+    </div>
+    <p style="font-size:14px;line-height:1.75;margin-bottom:12px;"><strong>What it does:</strong> Manages 4 pieces of state: <code>mood</code> (what the user typed), <code>results</code> (array of 3 movies), <code>loading</code> (boolean for spinner), and <code>error</code> (error message string). When the user clicks the button, <code>handleSearch()</code> runs. It shows suggestion chips to help users who don't know what to type.</p>
+    <pre style="font-size:11px;"><span class="kw">const</span> SUGGESTIONS = [
+  <span class="str">"something dark and psychological"</span>,
+  <span class="str">"funny with a twist ending"</span>,
+  <span class="str">"epic adventure with emotional depth"</span>,
+  <span class="str">"feel-good and uplifting"</span>,
+  <span class="str">"tense and suspenseful"</span>,
+];
+
+<span class="kw">const</span> [mood,    setMood]    = useState(<span class="str">''</span>);
+<span class="kw">const</span> [results, setResults] = useState([]);
+<span class="kw">const</span> [loading, setLoading] = useState(<span class="kw">false</span>);
+<span class="kw">const</span> [error,   setError]   = useState(<span class="kw">null</span>);
+
+<span class="kw">async function</span> handleSearch() {
+  setLoading(<span class="kw">true</span>); setError(<span class="kw">null</span>); setResults([]);
+  <span class="kw">try</span> {
+    <span class="kw">const</span> res = <span class="kw">await</span> fetch(<span class="str">"http://localhost:5088/api/recommend"</span>, {
+      method: <span class="str">"POST"</span>,
+      headers: { <span class="str">"Content-Type"</span>: <span class="str">"application/json"</span> },
+      body: JSON.stringify({ mood }),
+    });
+    <span class="kw">if</span> (!res.ok) <span class="kw">throw new</span> Error(<span class="str">`Server error: ${res.status}`</span>);
+    setResults(<span class="kw">await</span> res.json());    <span class="cm">// [{title, genre, description, score}, ...]</span>
+  } <span class="kw">catch</span> (e) {
+    setError(e.message);
+  } <span class="kw">finally</span> {
+    setLoading(<span class="kw">false</span>);
+  }
+}</pre>
+  </div>
+
+  <!-- MovieCard.jsx -->
+  <div class="card card-accent-left" style="margin-bottom:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+      <div>
+        <span style="font-family:var(--mono);font-size:10px;background:var(--accent);color:white;padding:2px 8px;border-radius:3px;">FRONTEND</span>
+        <h3 style="font-family:var(--display);font-size:20px;font-weight:700;margin-top:8px;">src/MovieCard.jsx</h3>
+        <p style="font-size:13px;color:var(--muted);">The result card component — one card per returned movie.</p>
+      </div>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;">~40 lines</span>
+    </div>
+    <p style="font-size:14px;line-height:1.75;margin-bottom:12px;"><strong>What it does:</strong> Receives <code>movie</code> (title, genre, description, score) and <code>rank</code> (0, 1, 2) as props. Uses rank to pick the medal emoji and gold/silver/bronze colour. Renders an animated score bar — the bar width is set via a CSS custom property <code>--width</code> which is driven by the score percentage.</p>
+    <pre style="font-size:11px;"><span class="kw">const</span> MEDALS      = [<span class="str">'🥇'</span>, <span class="str">'🥈'</span>, <span class="str">'🥉'</span>];
+<span class="kw">const</span> RANK_COLORS = [<span class="str">'#f5a623'</span>, <span class="str">'#c0c0c0'</span>, <span class="str">'#cd7f32'</span>];  <span class="cm">// gold / silver / bronze</span>
+<span class="kw">const</span> RANK_LABELS = [<span class="str">'BEST MATCH'</span>, <span class="str">'2ND MATCH'</span>, <span class="str">'3RD MATCH'</span>];
+
+<span class="kw">export function</span> MovieCard({ movie, rank }) {
+  <span class="kw">const</span> pct = Math.round(movie.score * <span class="num">100</span>);        <span class="cm">// 0.41 → 41%</span>
+  <span class="kw">const</span> accent = RANK_COLORS[rank];
+  <span class="kw">return</span> (
+    &lt;<span class="kw">div</span> className=<span class="str">"movie-card"</span> style={{ <span class="str">'--accent'</span>: accent }}&gt;
+      &lt;<span class="kw">div</span> className=<span class="str">"rank-row"</span>&gt;
+        &lt;<span class="kw">span</span> className=<span class="str">"medal"</span>&gt;{MEDALS[rank]}&lt;/<span class="kw">span</span>&gt;
+        &lt;<span class="kw">span</span> className=<span class="str">"rank-label"</span>&gt;{RANK_LABELS[rank]}&lt;/<span class="kw">span</span>&gt;
+      &lt;/<span class="kw">div</span>&gt;
+      &lt;<span class="kw">h2</span>&gt;{movie.title}&lt;/<span class="kw">h2</span>&gt;
+      &lt;<span class="kw">p</span> className=<span class="str">"genre"</span>&gt;{movie.genre}&lt;/<span class="kw">p</span>&gt;
+      &lt;<span class="kw">p</span> className=<span class="str">"desc"</span>&gt;{movie.description}&lt;/<span class="kw">p</span>&gt;
+      &lt;<span class="kw">div</span> className=<span class="str">"score-bar-wrap"</span>&gt;
+        &lt;<span class="kw">div</span> className=<span class="str">"score-bar"</span> style={{ <span class="str">'--width'</span>: `${pct}%` }} /&gt;
+        &lt;<span class="kw">span</span> className=<span class="str">"score-label"</span>&gt;{pct}% match&lt;/<span class="kw">span</span>&gt;
+      &lt;/<span class="kw">div</span>&gt;
+    &lt;/<span class="kw">div</span>&gt;
+  );
+}</pre>
+  </div>
+
+  <!-- App.css -->
+  <div class="card card-accent-gold" style="margin-bottom:20px;">
+    <div style="margin-bottom:12px;">
+      <span style="font-family:var(--mono);font-size:10px;background:var(--gold);color:white;padding:2px 8px;border-radius:3px;">FRONTEND / STYLES</span>
+      <h3 style="font-family:var(--display);font-size:20px;font-weight:700;margin-top:8px;">src/App.css</h3>
+      <p style="font-size:13px;color:var(--muted);">The full dark glassmorphism visual theme.</p>
+    </div>
+    <p style="font-size:14px;line-height:1.75;margin-bottom:12px;"><strong>What it does:</strong> Defines the entire visual identity of the app. Key techniques used:</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div class="card" style="margin-bottom:0;padding:14px 16px;">
+        <p style="font-family:var(--mono);font-size:10px;color:var(--accent);letter-spacing:0.08em;margin-bottom:6px;">ANIMATED ORBS</p>
+        <p style="font-size:13px;color:var(--muted);">Three fixed-position blurred circles (purple, blue, pink) with a <code>drift</code> keyframe animation that slowly moves them around the background.</p>
+      </div>
+      <div class="card" style="margin-bottom:0;padding:14px 16px;">
+        <p style="font-family:var(--mono);font-size:10px;color:var(--accent2);letter-spacing:0.08em;margin-bottom:6px;">GLASSMORPHISM</p>
+        <p style="font-size:13px;color:var(--muted);">Cards use <code>background: rgba(255,255,255,0.05)</code> + <code>backdrop-filter: blur(12px)</code> to create the frosted glass look over the animated background.</p>
+      </div>
+      <div class="card" style="margin-bottom:0;padding:14px 16px;">
+        <p style="font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:0.08em;margin-bottom:6px;">ANIMATED SCORE BAR</p>
+        <p style="font-size:13px;color:var(--muted);">The score bar starts at <code>width: 0</code> and animates to <code>var(--width)</code> using a CSS transition on mount — the width value is injected from React as an inline style.</p>
+      </div>
+      <div class="card" style="margin-bottom:0;padding:14px 16px;">
+        <p style="font-family:var(--mono);font-size:10px;color:var(--success);letter-spacing:0.08em;margin-bottom:6px;">COMPACT HEADER</p>
+        <p style="font-size:13px;color:var(--muted);">After the first search, the <code>.searched</code> class is added to the container, which triggers a CSS transition shrinking the header so result cards have more room.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Config files -->
+  <div class="card" style="margin-bottom:20px;">
+    <div style="margin-bottom:12px;">
+      <span style="font-family:var(--mono);font-size:10px;background:var(--muted);color:white;padding:2px 8px;border-radius:3px;">CONFIG</span>
+      <h3 style="font-family:var(--display);font-size:20px;font-weight:700;margin-top:8px;">appsettings.Development.json &amp; .gitignore</h3>
+      <p style="font-size:13px;color:var(--muted);">Secret configuration kept out of source control.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div>
+        <p style="font-family:var(--mono);font-size:10px;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">APPSETTINGS.DEVELOPMENT.JSON (gitignored)</p>
+        <pre style="margin:0;font-size:11px;">{
+  <span class="str">"ConnectionStrings"</span>: {
+    <span class="str">"DefaultConnection"</span>:
+      <span class="str">"Host=localhost;Port=5432;
+       Database=moviedb;
+       Username=shoebali"</span>
+  },
+  <span class="str">"OpenAI"</span>: {
+    <span class="str">"ApiKey"</span>: <span class="str">"sk-proj-..."</span>
+  }
+}</pre>
+      </div>
+      <div>
+        <p style="font-family:var(--mono);font-size:10px;letter-spacing:0.08em;color:var(--muted);margin-bottom:8px;">.GITIGNORE</p>
+        <pre style="margin:0;font-size:11px;"><span class="cm"># Secret config — never commit</span>
+appsettings.Development.json
+
+<span class="cm"># Build output</span>
+bin/
+obj/
+
+<span class="cm"># OS files</span>
+.DS_Store</pre>
+        <div class="callout ok" style="margin-top:10px;margin-bottom:0;padding:10px 14px;">
+          <span class="callout-icon" style="font-size:13px;">✓</span>
+          <div style="font-size:12px;">The API key is never in the git history. Verified: <code>git log -- appsettings.Development.json</code> returns nothing.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <strong>AI Integration Course</strong> &nbsp;·&nbsp; Project Submission Report &nbsp;·&nbsp; Movie Recommendation Engine &nbsp;·&nbsp; React + .NET 10 + pgvector + OpenAI &nbsp;·&nbsp; April 11, 2026
+</footer>
+
+<script>
+// ─── GLOBAL STARFIELD (fixed background) ────────────────────────────────────
+(function() {
+  const canvas = document.getElementById('hero-canvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x000000, 0);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+  camera.position.z = 500;
+
+  // Floating particles
+  const pGeo = new THREE.BufferGeometry();
+  const count = 900;
+  const pos = new Float32Array(count * 3);
+  const col = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    pos[i*3]   = (Math.random() - 0.5) * 1600;
+    pos[i*3+1] = (Math.random() - 0.5) * 1200;
+    pos[i*3+2] = (Math.random() - 0.5) * 800;
+    const t = Math.random();
+    col[i*3]   = t < 0.5 ? 0.66 : 0.02;  // r
+    col[i*3+1] = t < 0.5 ? 0.33 : 0.71;  // g
+    col[i*3+2] = t < 0.5 ? 0.97 : 0.847; // b
+  }
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  pGeo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
+  const pMat = new THREE.PointsMaterial({ size: 1.8, vertexColors: true, transparent: true, opacity: 0.7 });
+  scene.add(new THREE.Points(pGeo, pMat));
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  let t = 0;
+  (function animate() {
+    requestAnimationFrame(animate);
+    t += 0.0003;
+    scene.rotation.y = t * 0.4;
+    scene.rotation.x = Math.sin(t) * 0.08;
+    renderer.render(scene, camera);
+  })();
+})();
+
+// ─── HERO NEURAL NETWORK (masthead canvas) ───────────────────────────────────
+(function() {
+  const canvas = document.getElementById('masthead-canvas');
+  const masthead = canvas.parentElement;
+
+  function resize() {
+    canvas.width  = masthead.offsetWidth;
+    canvas.height = masthead.offsetHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 0);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(55, canvas.width / canvas.height, 0.1, 1000);
+  camera.position.set(0, 0, 280);
+
+  // Neural nodes
+  const NODE_COUNT = 60;
+  const nodes = [];
+  const nodeMesh = [];
+  const nodeGeo = new THREE.SphereGeometry(2.2, 10, 10);
+
+  for (let i = 0; i < NODE_COUNT; i++) {
+    const x = (Math.random() - 0.5) * 320;
+    const y = (Math.random() - 0.5) * 180;
+    const z = (Math.random() - 0.5) * 120;
+    nodes.push({ x, y, z, vx: (Math.random()-0.5)*0.18, vy: (Math.random()-0.5)*0.12, vz: (Math.random()-0.5)*0.08 });
+    const col = Math.random() > 0.5 ? 0xa855f7 : 0x06b6d4;
+    const mat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.85 });
+    const mesh = new THREE.Mesh(nodeGeo, mat);
+    mesh.position.set(x, y, z);
+    scene.add(mesh);
+    nodeMesh.push(mesh);
+  }
+
+  // Edges (connections within distance)
+  const edgeLines = [];
+  const lineMat = new THREE.LineBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.18 });
+  for (let i = 0; i < NODE_COUNT; i++) {
+    for (let j = i + 1; j < NODE_COUNT; j++) {
+      const dx = nodes[i].x - nodes[j].x;
+      const dy = nodes[i].y - nodes[j].y;
+      const dz = nodes[i].z - nodes[j].z;
+      if (Math.sqrt(dx*dx+dy*dy+dz*dz) < 80) {
+        const geo = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(nodes[i].x, nodes[i].y, nodes[i].z),
+          new THREE.Vector3(nodes[j].x, nodes[j].y, nodes[j].z)
+        ]);
+        const line = new THREE.Line(geo, lineMat.clone());
+        scene.add(line);
+        edgeLines.push({ line, i, j });
+      }
+    }
+  }
+
+  // Central glowing orb
+  const orbGeo = new THREE.SphereGeometry(22, 32, 32);
+  const orbMat = new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 0.12, wireframe: true });
+  const orb = new THREE.Mesh(orbGeo, orbMat);
+  scene.add(orb);
+  const orbInner = new THREE.Mesh(
+    new THREE.SphereGeometry(14, 24, 24),
+    new THREE.MeshBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 0.15, wireframe: true })
+  );
+  scene.add(orbInner);
+
+  // Mouse parallax
+  let mx = 0, my = 0;
+  document.addEventListener('mousemove', e => {
+    mx = (e.clientX / window.innerWidth  - 0.5) * 40;
+    my = (e.clientY / window.innerHeight - 0.5) * 20;
+  });
+
+  let tick = 0;
+  (function animate() {
+    requestAnimationFrame(animate);
+    tick += 0.008;
+
+    // Animate orbs
+    orb.rotation.y = tick * 0.5;
+    orb.rotation.x = tick * 0.3;
+    orbInner.rotation.y = -tick * 0.7;
+    orbInner.rotation.z = tick * 0.4;
+
+    // Move nodes
+    for (let i = 0; i < NODE_COUNT; i++) {
+      nodes[i].x += nodes[i].vx;
+      nodes[i].y += nodes[i].vy;
+      nodes[i].z += nodes[i].vz;
+      if (Math.abs(nodes[i].x) > 160) nodes[i].vx *= -1;
+      if (Math.abs(nodes[i].y) > 90)  nodes[i].vy *= -1;
+      if (Math.abs(nodes[i].z) > 60)  nodes[i].vz *= -1;
+      nodeMesh[i].position.set(nodes[i].x, nodes[i].y, nodes[i].z);
+    }
+
+    // Update edge positions
+    for (const e of edgeLines) {
+      const pts = [
+        new THREE.Vector3(nodes[e.i].x, nodes[e.i].y, nodes[e.i].z),
+        new THREE.Vector3(nodes[e.j].x, nodes[e.j].y, nodes[e.j].z)
+      ];
+      e.line.geometry.setFromPoints(pts);
+    }
+
+    // Parallax camera
+    camera.position.x += (mx - camera.position.x) * 0.04;
+    camera.position.y += (-my - camera.position.y) * 0.04;
+    camera.lookAt(scene.position);
+
+    // Update canvas size if masthead resized
+    if (renderer.domElement.width !== masthead.offsetWidth) {
+      renderer.setSize(masthead.offsetWidth, masthead.offsetHeight);
+      camera.aspect = masthead.offsetWidth / masthead.offsetHeight;
+      camera.updateProjectionMatrix();
+    }
+
+    renderer.render(scene, camera);
+  })();
+})();
+
+// ─── FLOATING 3D WIDGET (bottom-right) ───────────────────────────────────────
+(function() {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;bottom:90px;right:28px;width:90px;height:90px;z-index:99;cursor:pointer;';
+  wrap.title = 'AI Vector Space';
+  document.body.appendChild(wrap);
+
+  const cvs = document.createElement('canvas');
+  cvs.width = 90; cvs.height = 90;
+  cvs.style.cssText = 'border-radius:50%;border:1px solid rgba(168,85,247,0.4);box-shadow:0 0 24px rgba(168,85,247,0.3);';
+  wrap.appendChild(cvs);
+
+  const renderer = new THREE.WebGLRenderer({ canvas: cvs, antialias: true, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(90, 90);
+  renderer.setClearColor(0x000000, 0);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+  camera.position.z = 3.2;
+
+  // Icosahedron wireframe
+  const icoGeo = new THREE.IcosahedronGeometry(1.1, 1);
+  const icoMat = new THREE.MeshBasicMaterial({ color: 0xa855f7, wireframe: true, transparent: true, opacity: 0.55 });
+  const ico = new THREE.Mesh(icoGeo, icoMat);
+  scene.add(ico);
+
+  // Inner octahedron
+  const octGeo = new THREE.OctahedronGeometry(0.65);
+  const octMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, wireframe: true, transparent: true, opacity: 0.7 });
+  const oct = new THREE.Mesh(octGeo, octMat);
+  scene.add(oct);
+
+  let isHovered = false;
+  wrap.addEventListener('mouseenter', () => isHovered = true);
+  wrap.addEventListener('mouseleave', () => isHovered = false);
+
+  let t = 0;
+  (function animate() {
+    requestAnimationFrame(animate);
+    t += isHovered ? 0.04 : 0.012;
+    ico.rotation.x = t * 0.5;
+    ico.rotation.y = t * 0.7;
+    oct.rotation.x = -t * 0.8;
+    oct.rotation.z = t * 0.6;
+    renderer.render(scene, camera);
+  })();
+})();
+</script>
+</body>
+</html>
