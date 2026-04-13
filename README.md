@@ -1,4 +1,4 @@
-# AI Movie Recommendation Engine
+open# AI Movie Recommendation Engine
 
 A full-stack web application that takes a mood or feeling typed by the user and returns the three most relevant movies from a database of 30 films — not by matching keywords, but by understanding meaning.
 
@@ -8,9 +8,9 @@ A full-stack web application that takes a mood or feeling typed by the user and 
 
 ## How it works
 
-When a movie description like *"A masked vigilante fights a chaotic criminal mastermind in a corrupt city"* is sent to the OpenAI API, it comes back as a list of 1536 decimal numbers. These numbers are not random — they are a mathematical fingerprint of what the text *means*. Two descriptions that are similar in theme and tone will produce number lists that look similar; two completely different stories will produce number lists that look nothing alike. These number lists are stored in PostgreSQL alongside each movie using a special column type provided by the pgvector extension.
+When you send a piece of text to an AI model, it can convert that text into a list of numbers — 1536 of them to be exact. That list is called an **embedding**, and it is not random noise; it is a compressed snapshot of what the text *means*. Words and sentences that share similar ideas, themes, or emotions end up as similar-looking lists of numbers, while completely unrelated texts produce lists that look nothing alike. Every movie description in this project gets converted into its own embedding and stored inside PostgreSQL using a special column type added by the **pgvector** extension, which is designed specifically to hold and search through these lists efficiently.
 
-When a user types something like *"something dark and psychological"*, the same process happens — their text is turned into its own list of 1536 numbers. The database then compares that list against all 30 stored movie lists and measures how much they point in the same direction. The three movies whose numbers align most closely with the user's input are returned as the top results, each with a score showing how well they matched.
+When a user types a mood like *"something dark and psychological"*, that phrase gets turned into its own list of 1536 numbers. pgvector then takes that list and compares it against every movie's stored list by measuring the angle between them in mathematical space — if two lists are pointing in roughly the same direction, the angle between them is small and the match is strong; if they are pointing in completely different directions, the angle is large and the match is weak. The three movies with the smallest angle to the user's input are returned as the top recommendations, each with a score that reflects how closely they lined up.
 
 ---
 
